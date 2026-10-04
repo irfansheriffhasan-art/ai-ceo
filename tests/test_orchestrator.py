@@ -144,6 +144,19 @@ async def test_reassign_skip_and_validation(make_engine):
     assert engine.s.store.get_task(css.id).status == TaskStatus.CANCELLED
 
 
+async def test_approve_anyway_with_failed_task_delivers_cleanly(make_engine):
+    engine = make_engine(MockProvider(delay_s=0.0, fail_tags={"code review": 99}), **NO_BROWSER)
+    p = engine.create_project("Build a task tracker web app")
+    await engine.start(p.id)
+    assert await run_to_rest(engine, p.id) == ProjectStatus.NEEDS_ATTENTION
+    review = next(t for t in engine.s.store.list_tasks(p.id) if t.kind == TaskKind.REVIEW)
+    assert review.status == TaskStatus.FAILED
+    await engine.approve(p.id)
+    assert await run_to_rest(engine, p.id) == ProjectStatus.COMPLETED, "approval must not be followed by a re-escalation"
+    assert engine.s.store.get_task(review.id).status == TaskStatus.CANCELLED
+    await engine.stop_preview(p.id)
+
+
 async def test_rollback_requires_pause_and_creates_commit(make_engine):
     engine = make_engine(**NO_BROWSER)
     p = engine.create_project("Build a task tracker web app")

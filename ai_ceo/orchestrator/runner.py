@@ -71,12 +71,18 @@ class ProjectRunner:
         self._stop_requested = True
         self.wake()
 
-    def cancel_task(self, task_id: str) -> bool:
+    async def cancel_task(self, task_id: str) -> bool:
+        """Cancel a running task and wait until its cancellation handler has finished."""
         t = self._running.get(task_id)
         if t is None:
             return False
         t.cancel()
+        await asyncio.gather(t, return_exceptions=True)
         return True
+
+    @property
+    def busy(self) -> int:
+        return len(self._running)
 
     @property
     def active(self) -> bool:

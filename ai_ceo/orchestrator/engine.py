@@ -153,7 +153,7 @@ class Engine:
             raise ControlError(f"cannot pause a project that is {p.status}")
         self.s.store.update_project(pid, status=ProjectStatus.PAUSED, status_reason="Paused by user")
         runner = self.runners.get(pid)
-        busy = len(runner._running) if runner else 0
+        busy = runner.busy if runner else 0
         self._control(pid, "Project paused" + (f" — waiting for {busy} running task(s) to finish" if busy else ""))
         if runner:
             runner.wake()
@@ -201,8 +201,8 @@ class Engine:
         if t.status in (TaskStatus.COMPLETED, TaskStatus.CANCELLED):
             raise ControlError(f"task is already {t.status}")
         runner = self.runners.get(t.project_id)
-        if runner and runner.cancel_task(tid):
-            await asyncio.sleep(0)
+        if runner:
+            await runner.cancel_task(tid)
         self.s.store.update_task(tid, status=TaskStatus.CANCELLED, error="skipped by user")
         self._control(t.project_id, f"Task skipped: {t.title}", {"task_id": tid})
         p = self._project(t.project_id)
@@ -245,6 +245,10 @@ class Engine:
             raise ControlError(f"nothing to approve (project is {p.status})")
         policy = CEOPolicy(self.s, pid)
         reason = "Client approved the release" + (" despite open issues" if p.status == ProjectStatus.NEEDS_ATTENTION else "")
+        # Approving overrides any outstanding failures; otherwise the CEO would re-escalate after deploying.
+        for t in self.s.store.list_tasks(pid):
+            if t.status == TaskStatus.FAILED:
+                self.s.store.update_task(t.id, status=TaskStatus.CANCELLED, error=f"skipped: release approved by client ({t.error[:200]})")
         ProjectMemory(self.s.store, pid).record_decision("Release approved", reason, "user")
         self._control(pid, reason)
         policy.create_deploy(self._project(pid))
@@ -340,7 +344,7 @@ class Engine:
             "agents": self.s.tracker.snapshot(pid),
             "open_bugs": open_bugs,
             "runner_active": bool(runner and runner.active),
-            "running_tasks": len(runner._running) if runner else 0,
+            "running_tasks": runner.busy if runner else 0,
             "usage": self.s.store.llm_usage(pid),
             "phases": [ph.value for ph in Phase],
             "iteration_scores": mem.get(MemoryKind.STATE, "iteration_scores", {}) or {},
