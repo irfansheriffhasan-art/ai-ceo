@@ -119,11 +119,14 @@ class Engine:
         objective = clean_text(objective, 4000)
         if len(objective) < 5:
             raise ControlError("Describe the project in at least a few words.")
-        name = clean_text(name or "", 80) or " ".join(objective.split()[:6])
+        custom_name = clean_text(name or "", 80)
+        name = custom_name or " ".join(objective.split()[:6])
         allowed = {"require_approval", "max_fix_iterations", "app_type"}
         settings = {k: v for k, v in (settings or {}).items() if k in allowed}
         if "max_fix_iterations" in settings:
             settings["max_fix_iterations"] = max(0, min(10, int(settings["max_fix_iterations"])))
+        if custom_name:
+            settings["custom_name"] = True  # otherwise the CEO names the product after its charter
         project = self.s.store.create_project(name=name, slug=slugify(name), objective=objective, settings=settings)
         root = self.s.settings.workspaces_dir / f"{project.slug}-{project.id}"
         Workspace(root).create()
@@ -338,7 +341,8 @@ class Engine:
         open_bugs = sum(1 for b in mem.values(MemoryKind.BUG) if b.get("status") == "open")
         runner = self.runners.get(pid)
         return {
-            "project": {**p.to_dict(), "preview_url": self.s.previews.url(pid) or (p.preview_url if p.status == ProjectStatus.COMPLETED else None)},
+            # Only a preview that is actually running right now (preview servers don't survive restarts).
+            "project": {**p.to_dict(), "preview_url": self.s.previews.url(pid)},
             "tasks": [t.to_dict() for t in tasks],
             "counts": counts,
             "agents": self.s.tracker.snapshot(pid),

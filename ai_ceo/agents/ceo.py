@@ -33,6 +33,8 @@ class CEOAgent(Agent):
         out = await ctx.structured(
             IntakeOutput, "ceo_intake", "project charter", max_tokens=700, request=ctx.project.objective, feedback=feedback
         )
+        if not (ctx.project.settings or {}).get("custom_name") and out.project_name.strip():
+            ctx.services.store.update_project(ctx.project.id, name=out.project_name.strip()[:80])
         forced = (ctx.project.settings or {}).get("app_type")
         if forced in ("static_web", "web_with_backend") and forced != out.app_type:
             ctx.memory.record_decision(f"App type set to {forced}", "Chosen explicitly by the client", "ceo")

@@ -264,7 +264,8 @@ def _dependency_checks(path: str, src: str) -> list[Issue]:
 def scan_files(files: dict[str, str]) -> list[Issue]:
     issues: list[Issue] = []
     for path, src in files.items():
-        if PurePosixPath(path).name.startswith(".env"):
+        name = PurePosixPath(path).name
+        if name.startswith(".env") and not name.endswith((".example", ".sample", ".template")):
             issues.append(Issue("high", "secret", ".env file present in project", file=path, source="security", suggestion="Never commit .env files."))
         issues.extend(_scan_rules(path, src))
         issues.extend(_insecure_randomness(path, src))

@@ -491,10 +491,13 @@ class MockProvider(LLMProvider):
             if key in req.tag and remaining > 0:
                 self.fail_tags[key] = remaining - 1
                 raise LLMError(f"mock failure for {req.tag}", retryable=False)
-        await asyncio.sleep(self.delay_s)
-        if req.on_progress:
-            req.on_progress(50)
         text = self._answer(req)
+        # Simulate streaming so demos show live token counts.
+        steps = max(1, int(self.delay_s / 0.25))
+        for i in range(steps):
+            await asyncio.sleep(self.delay_s / steps)
+            if req.on_progress:
+                req.on_progress(int(len(text) / 4 * (i + 1) / steps))
         return LLMResponse(
             text=text,
             model="mock",

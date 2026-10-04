@@ -273,14 +273,43 @@ def _serve(args: argparse.Namespace) -> int:
     app = create_app(settings)
     url = f"http://{'localhost' if host in ('127.0.0.1', '0.0.0.0') else host}:{port}"
     console.print(BANNER.format(v=__version__))
-    console.print(f"Dashboard: [bold]{url}[/bold]")
+    if not settings.web_dist_dir.joinpath("index.html").is_file():
+        console.print("[yellow]The web UI isn't built yet — run setup (or: cd web; npm install; npm run build).[/yellow]")
+    _print_model_hint(settings)
+    console.print(f"Open: [bold]{url}[/bold]")
     console.print(f"Access token: [bold]{token}[/bold]  (stored in {settings.data_dir / 'auth_token'})")
     if host not in ("127.0.0.1", "localhost"):
         console.print("[yellow]Warning: listening on a non-local interface. Anyone who can reach it needs the token.[/yellow]")
+    console.print("Press Ctrl+C to stop.")
     if not args.no_browser:
-        webbrowser.open(url)
+        # The token travels in the URL fragment: browsers never send fragments to servers or logs.
+        webbrowser.open(f"{url}/#token={token}")
     uvicorn.run(app, host=host, port=port, log_level="warning")
     return 0
+
+
+def _print_model_hint(settings: Settings) -> None:
+    from .llm.ollama_provider import OllamaProvider
+
+    if settings.llm_provider == "mock":
+        console.print("[cyan]Demo mode:[/cyan] the offline mock model builds sample apps (no AI model needed).")
+        return
+    if settings.llm_provider != "ollama":
+        console.print(f"Model: {settings.llm_provider} / {settings.llm_model}")
+        return
+    try:
+        status = asyncio.run(OllamaProvider(settings.ollama_host, settings.ollama_num_ctx, 5).health())
+    except Exception:  # noqa: BLE001
+        status = {"ok": False, "models": []}
+    if not status.get("ok"):
+        console.print(
+            "[yellow]Ollama isn't running.[/yellow] Install it from https://ollama.com and run "
+            f"`ollama pull {settings.llm_model}` — or try the demo: [bold]python main.py --provider mock serve[/bold]"
+        )
+    elif not OllamaProvider.has_model(status.get("models", []), settings.llm_model):
+        console.print(f"[yellow]Model missing:[/yellow] run `ollama pull {settings.llm_model}`")
+    else:
+        console.print(f"Model: ollama / {settings.llm_model} [green]ready[/green]")
 
 
 def main(argv: list[str] | None = None) -> int:

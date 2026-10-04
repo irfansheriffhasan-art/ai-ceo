@@ -1,62 +1,112 @@
-# AI-CEO — Autonomous Multi-Agent Software Company
+<div align="center">
 
-Describe an app. An AI CEO turns it into a charter. A team of 14 specialist agents then plans, designs,
-builds, tests, reviews, fixes and deploys it. The team verifies its own work in a real headless browser
-and fixes what fails. When it can't converge, it escalates to you. You watch and steer everything from a
-live command-center dashboard, or from the terminal.
+# AI-CEO
 
-```
-USER ──▶ AI CEO ──▶ Strategic Planner ──▶ Project Manager ──▶ Orchestrator
-                                                                   │
-   ┌───────────────────────────────────────────────────────────────┤
-   │ Product · Architect · UI/UX · Frontend · Backend · Database · AI/ML
-   │ Security · Testing · Code Review · DevOps
-   └───────────────────────────────────────────────────────────────┤
-                                                                   ▼
-        Verification (static + browser + API + security + review) ──▶ CEO decision
-                 ▲                                                 │
-                 └──────── fix tasks routed to file owners ◀───────┤ (bounded retries)
-                                                                   ▼
-                                            Approval ──▶ Deploy (git tag, zip, live preview)
-```
+### Describe an app. An AI software company builds it.
 
----
+A CEO, product manager, architect, designer, developers, QA, security and code reviewers —
+**14 AI agents** that plan, write the code, **test it in a real browser**, fix what fails and ship a working app.
+Runs fully local on your own GPU (Ollama), or with Claude / OpenAI.
+
+![AI-CEO demo: type a prompt, watch the team build, get a working app](docs/images/demo.gif)
+
+</div>
+
+## Features
+
+- **Prompt → working app.** Describe the app in plain English. You get a running web app, its git
+  history and a downloadable release.
+- **A real team, not one prompt.**
+  - The CEO sets the scope. The planner, PM and architect break the work down.
+  - Developers write one file at a time and self-check each one: syntax, element ids, browser APIs and imports.
+- **Verified, not assumed.**
+  - The app is opened in headless Edge or Chrome via Playwright and driven through acceptance tests
+    written from your requirements.
+  - Generated APIs are tested live.
+  - A security scanner runs on every round.
+- **Self-correcting.**
+  - Failures are routed to the developer who owns the file, with exact reproduction steps.
+  - The CEO rolls back regressions, and tests that are themselves wrong get disputed and rewritten.
+  - When the team can't converge, it asks you.
+- **You stay in control.** Pause, resume, stop, approve, reject with feedback, request changes after
+  release, roll back to any commit, retry or reassign any task.
+- **Watch it work.** The Studio shows progress, the agents working right now, code as it is
+  written, quality scores and the finished app running inline. The Command center shows every task,
+  decision, test, diff and LLM call.
+
+| Prompt | Live build | Result |
+|---|---|---|
+| ![Studio](docs/images/studio-home.png) | ![Live code](docs/images/studio-live-code.png) | ![Delivered](docs/images/studio-delivered.png) |
+
+| Command center | QA with real-browser screenshots | Git history & rollback |
+|---|---|---|
+| ![Command center](docs/images/command-center.png) | ![Tests](docs/images/command-tests.png) | ![Git](docs/images/command-git.png) |
 
 ## Quick start
 
-Prerequisites: Python 3.11+, Git, Node 18+. For local models you also need
-[Ollama](https://ollama.com) with a model pulled. A Chromium-family browser is needed for
-browser tests; Edge or Chrome is detected automatically.
+You need **Python 3.11+**, **Node 18+** and **Git**. For local models, also install [Ollama](https://ollama.com).
 
+**Windows (PowerShell)**
 ```powershell
-# 1. Python environment
-python -m venv .venv
-.venv\Scripts\activate            # macOS/Linux: source .venv/bin/activate
-pip install -r requirements.txt
-
-# 2. A local model (default) — or set ANTHROPIC_API_KEY / OPENAI_API_KEY, see Configuration
-ollama pull llama3.1:8b
-
-# 3. Check the environment (if "browser" fails and you have neither Edge nor Chrome:
-#    python -m playwright install chromium)
-python main.py doctor
-
-# 4a. Terminal: describe an idea and watch the company build it
-python main.py
-
-# 4b. Dashboard: build the UI once, then serve it
-cd web; npm install; npm run build; cd ..
-python main.py serve              # prints the URL and your access token
+git clone <this-repo-url> ai-ceo
+cd ai-ceo
+powershell -ExecutionPolicy Bypass -File setup.ps1   # one time: venv, packages, web UI, browser, model
+powershell -ExecutionPolicy Bypass -File start.ps1   # opens the Studio, already signed in
 ```
 
-To try everything offline in about a minute, with deterministic output from the mock provider:
-
-```powershell
-python main.py --provider mock run "Build a task tracker web app" --yes
+**macOS / Linux**
+```bash
+git clone <this-repo-url> ai-ceo && cd ai-ceo
+chmod +x setup.sh start.sh
+./setup.sh
+./start.sh
 ```
 
-The mock build deliberately ships a bug in its first `app.js`, so you can watch the
-QA → CEO → fix → regression-test loop catch and repair it.
+**No GPU and no API key?** Start the offline demo:
+`start.ps1 -Demo` / `./start.sh --demo`. The demo model builds a sample task tracker so you can
+see the whole pipeline. Its first version contains a deliberate bug, and you watch QA catch it and
+the team fix it.
+
+**Use Claude for the best results:** copy `.env.example` to `.env` and set
+`AICEO_LLM_PROVIDER=anthropic` and `ANTHROPIC_API_KEY=...`.
+
+## Real results on a laptop
+
+Everything above also runs on a local 8B model. The run below used `llama3.1:8b` on an
+RTX 4050 laptop GPU (6 GB). Prompt: *"A habit tracker where I can add daily habits, tick them off each
+day and see my current streak for each habit"*.
+
+![Habit tracker built by llama3.1:8b](docs/images/real-llama-habit-tracker.png)
+
+- **Time:** 14 minutes for 3 rounds. Round 1 passed 5/6 browser tests. QA then disputed a stubborn
+  test and rewrote it, and round 3 passed 6/6 with security at 100/100.
+- **Release:** the CEO approved the release, then DevOps tagged v1.0.0 and started a live preview.
+- **Known limitation:** small local models still miss subtleties. Here, the streak counted clicks
+  rather than days. You fix that with a change request ("streaks should count days"), which starts a
+  new round. Stronger models need fewer rounds.
+
+## How it works
+
+```
+You ──▶ CEO (scope) ──▶ Strategic Planner ──▶ Project Manager ──▶ Orchestrator
+                                                                     │
+   Product · Architect · UI/UX · Frontend · Backend · Database · AI/ML · Security · Testing · Review · DevOps
+                                                                     │
+      browser tests + API tests + security scan + code review ──▶ CEO decision
+           ▲                                                         │
+           └──── fix tasks to the file's owner (bounded rounds) ◀────┤
+                                                                     ▼
+                                          approve ──▶ git merge + tag + zip + live preview
+```
+
+The development loop is controlled by deterministic, auditable CEO rules
+([`ai_ceo/orchestrator/policy.py`](ai_ceo/orchestrator/policy.py)), so a weak model can't derail it.
+Models do the creative work: requirements, design, code, tests and reviews.
+
+**Stack:**
+- Python 3.11+, FastAPI, SQLAlchemy/SQLite, Playwright
+- React + TypeScript (Vite)
+- Ollama, the Anthropic SDK or OpenAI for the models
 
 ---
 

@@ -35,8 +35,9 @@ def test_python_import_policy():
 
 
 def test_security_findings_and_redaction():
+    fake_key = "sk-" + "ant-" + "abcdefghijklmnopqrstuvwxyz0123"  # assembled at runtime: no key-like literal in the repo
     files = {
-        "app.js": "el.innerHTML = `<b>${userInput}</b>`;\nconst api_key = 'sk-ant-abcdefghijklmnopqrstuvwxyz0123';\nconst pw = Math.random(); // password",
+        "app.js": f"el.innerHTML = `<b>${{userInput}}</b>`;\nconst api_key = '{fake_key}';\nconst pw = Math.random(); // password",
         "backend/main.py": (
             "from fastapi import FastAPI\napp = FastAPI()\n@app.post('/x')\ndef x(data: dict):\n"
             "    cur.execute(f\"SELECT * FROM t WHERE id={data['id']}\")\n"

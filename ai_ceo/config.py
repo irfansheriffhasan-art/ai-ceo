@@ -55,8 +55,10 @@ class Settings(BaseSettings):
     )
     openai_base_url: str | None = None
 
-    # Mock provider: inject a deliberate bug in the first frontend build to exercise the fix loop.
+    # Mock provider: inject a deliberate bug in the first frontend build to exercise the fix loop,
+    # and pace each "model call" so a demo can be watched (0 = instant).
     mock_inject_bug: bool = True
+    mock_delay_s: float = 1.5
 
     # ---- Orchestration -------------------------------------------------------
     task_max_attempts: int = 3

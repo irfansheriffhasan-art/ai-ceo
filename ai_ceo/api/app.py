@@ -24,7 +24,9 @@ log = get_logger("api")
 
 CSP = (
     "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; "
-    "connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+    "connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; "
+    # Generated apps are previewed in an iframe; they run on their own localhost port (a separate origin).
+    "frame-src 'self' http://127.0.0.1:* http://localhost:*"
 )
 
 DASHBOARD_MISSING = """<!doctype html><meta charset="utf-8"><title>AI-CEO</title>

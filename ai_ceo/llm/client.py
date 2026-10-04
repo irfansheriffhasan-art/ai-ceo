@@ -46,7 +46,7 @@ def build_provider(settings: Settings) -> LLMProvider:
         return OpenAIProvider(key, settings.openai_base_url, settings.llm_timeout_s)
     from .mock_provider import MockProvider
 
-    return MockProvider(inject_bug=settings.mock_inject_bug)
+    return MockProvider(inject_bug=settings.mock_inject_bug, delay_s=settings.mock_delay_s)
 
 
 class CallContext:

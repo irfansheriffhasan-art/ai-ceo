@@ -325,6 +325,20 @@ def artifact(pid: str, name: str, services: Services = Depends(get_services)) ->
     return FileResponse(path)
 
 
+@router.get("/projects/{pid}/cover")
+def cover(pid: str, services: Services = Depends(get_services)) -> FileResponse:
+    """The most recent QA screenshot of the app — used as its thumbnail."""
+    if not re.match(r"^[a-f0-9]{12}$", pid):
+        raise HTTPException(400, "invalid project id")
+    for report in reversed(services.store.list_reports(pid, "test")):
+        name = (report.details or {}).get("screenshot")
+        if name and _ARTIFACT_NAME.match(name):
+            path = services.settings.artifacts_dir / pid / name
+            if path.is_file():
+                return FileResponse(path, headers={"Cache-Control": "no-cache"})
+    raise HTTPException(404, "no screenshot yet")
+
+
 @router.get("/projects/{pid}/download")
 def download(pid: str, services: Services = Depends(get_services)) -> FileResponse:
     p = services.store.get_project(pid)

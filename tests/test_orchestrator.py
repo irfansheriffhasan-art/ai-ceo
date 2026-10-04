@@ -125,6 +125,7 @@ async def test_approval_gate_reject_feedback_and_change_request(make_engine):
 
     await engine.approve(p.id)
     assert await run_to_rest(engine, p.id) == ProjectStatus.COMPLETED
+    assert engine.s.store.get_project(p.id).name == "Task Tracker", "unnamed projects take the CEO's product name"
 
     await engine.feedback(p.id, "Add a clear-all button")
     assert await run_to_rest(engine, p.id) == ProjectStatus.AWAITING_APPROVAL
@@ -189,4 +190,4 @@ async def test_create_project_validation(make_engine):
         engine.create_project("   ")
     p = engine.create_project("x" * 10_000 + " app", name="\x00Evil\x07Name", settings={"max_fix_iterations": 99, "evil": 1})
     assert len(p.objective) <= 4000 and "\x00" not in p.name
-    assert p.settings == {"max_fix_iterations": 10}
+    assert p.settings == {"max_fix_iterations": 10, "custom_name": True}
