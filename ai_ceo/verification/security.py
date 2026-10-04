@@ -203,9 +203,12 @@ def _api_checks(path: str, src: str) -> list[Issue]:
             if method not in ("post", "put", "patch", "delete"):
                 continue
             mutating += 1
+            body_src = ast.unparse(node)
             for arg in node.args.args:
                 ann = ast.unparse(arg.annotation) if arg.annotation else ""
-                if ann in ("dict", "Dict", "dict[str, Any]", "Request", "Any"):
+                # A Request parameter is only a problem when its raw body is parsed by hand.
+                reads_raw = re.search(rf"\b{arg.arg}\.(json|form|body)\(", body_src) is not None
+                if ann in ("dict", "Dict", "dict[str, Any]", "Any") or (ann == "Request" and reads_raw):
                     issues.append(
                         Issue(
                             "medium",

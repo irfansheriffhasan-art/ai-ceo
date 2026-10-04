@@ -103,11 +103,11 @@ class ProjectRunner:
                 by_id = {t.id: t for t in tasks}
                 ready: list[Task] = []
                 for t in tasks:
-                    if t.status in (TaskStatus.BACKLOG, TaskStatus.PLANNED) and t.id not in self._running:
-                        if deps_satisfied(t, by_id):
-                            if t.status == TaskStatus.BACKLOG:
-                                self.s.store.update_task(t.id, status=TaskStatus.PLANNED)
-                            ready.append(t)
+                    waiting = t.status in (TaskStatus.BACKLOG, TaskStatus.PLANNED) and t.id not in self._running
+                    if waiting and deps_satisfied(t, by_id):
+                        if t.status == TaskStatus.BACKLOG:
+                            self.s.store.update_task(t.id, status=TaskStatus.PLANNED)
+                        ready.append(t)
                 ready.sort(key=lambda t: (t.priority, t.seq))
                 slots = max(1, self.s.settings.max_parallel_tasks) - len(self._running)
                 for t in ready[: max(0, slots)]:

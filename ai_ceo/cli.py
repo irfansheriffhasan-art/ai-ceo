@@ -59,7 +59,7 @@ def _render(snapshot: dict[str, Any], events: list[dict[str, Any]]) -> Group:
     p = snapshot["project"]
     head = Text.assemble(
         (f"{p['name']}", "bold"),
-        f"  ·  status: ",
+        "  ·  status: ",
         (p["status"], "bold green" if p["status"] in ("running", "completed") else "bold yellow"),
         f"  ·  phase: {p['phase']}  ·  iteration {p['iteration']}  ·  {p['progress']:.0f}%",
     )
@@ -108,7 +108,7 @@ async def _watch(engine: Any, pid: str) -> Any:
         services.events.unsubscribe(queue)
 
 
-async def _build(args: argparse.Namespace, idea: str, interactive: bool) -> int:
+async def _open_engine(args: argparse.Namespace) -> Any:
     from .orchestrator import Engine
     from .services import Services
 
@@ -120,11 +120,19 @@ async def _build(args: argparse.Namespace, idea: str, interactive: bool) -> int:
     status = await services.system_status()
     if not status["llm"]["ok"]:
         console.print(f"[red]LLM not ready:[/red] {status['llm']['detail']}")
-        return 2
+        await services.aclose()
+        return None
     console.print(
         f"LLM: [bold]{status['llm']['provider']}[/bold] / {status['llm']['model']}  ·  "
         f"browser tests: {'on (' + status['browser']['detail'] + ')' if status['browser']['ok'] else 'off'}"
     )
+    return engine
+
+
+async def _build(args: argparse.Namespace, idea: str, interactive: bool) -> int:
+    engine = await _open_engine(args)
+    if engine is None:
+        return 2
     project_settings: dict[str, Any] = {}
     if getattr(args, "backend", False):
         project_settings["app_type"] = "web_with_backend"
@@ -134,19 +142,56 @@ async def _build(args: argparse.Namespace, idea: str, interactive: bool) -> int:
         project_settings["require_approval"] = True
     project = engine.create_project(idea, getattr(args, "name", None), project_settings)
     console.print(f"Project [bold]{project.id}[/bold] → {project.workspace_path}")
+    await engine.start(project.id)
+    return await _drive(engine, project.id, interactive)
+
+
+async def _resume(args: argparse.Namespace) -> int:
+    """Continue an interrupted, paused, stopped or escalated project from where it left off."""
+    engine = await _open_engine(args)
+    if engine is None:
+        return 2
+    project = engine.s.store.get_project(args.project_id)
+    if project is None:
+        console.print(f"[red]No project {args.project_id}[/red] (see `python main.py list`)")
+        await engine.shutdown()
+        return 2
+    done = sum(1 for t in engine.s.store.list_tasks(project.id) if t.status == "completed")
+    console.print(f"Resuming [bold]{project.name}[/bold] ({project.status}, {done} task(s) already done)")
+    if args.more_fixes:
+        await engine.continue_fixing(project.id, args.more_fixes)
+    elif args.approve_release:
+        await engine.approve(project.id)
+    else:
+        await engine.resume(project.id)
+    return await _drive(engine, project.id, interactive=not args.yes)
+
+
+async def _drive(engine: Any, pid: str, interactive: bool) -> int:
     try:
-        await engine.start(project.id)
         while True:
-            project = await _watch(engine, project.id)
+            project = await _watch(engine, pid)
             if project.status == ProjectStatus.AWAITING_APPROVAL and interactive:
                 answer = console.input("[bold]Approve release?[/bold] [Y]es / or type feedback to revise: ").strip()
                 if answer.lower() in ("", "y", "yes"):
-                    await engine.approve(project.id)
+                    await engine.approve(pid)
                 else:
-                    await engine.reject(project.id, answer)
+                    await engine.reject(pid, answer)
+                continue
+            if project.status == ProjectStatus.NEEDS_ATTENTION and interactive:
+                console.print(f"[yellow]CEO escalation:[/yellow] {project.status_reason}")
+                answer = console.input("[bold]Decision?[/bold] [a]pprove anyway / [f]ix more / [s]top / or type feedback: ").strip()
+                if answer.lower() in ("a", "approve"):
+                    await engine.approve(pid)
+                elif answer.lower() in ("f", "fix"):
+                    await engine.continue_fixing(pid, 2)
+                elif answer and answer.lower() not in ("s", "stop"):
+                    await engine.reject(pid, answer)
+                else:
+                    break
                 continue
             break
-        _summary(engine, project.id)
+        _summary(engine, pid)
         if project.status == ProjectStatus.COMPLETED and project.preview_url:
             console.print(f"\n[bold green]Live preview:[/bold green] {project.preview_url}")
             if interactive:
@@ -202,7 +247,10 @@ def _list(args: argparse.Namespace) -> int:
 
     settings = _settings(args)
     store = Store(settings.db_path)
-    table = Table("id", "name", "status", "phase", "iter", "progress", "created")
+    table = Table()
+    table.add_column("id", no_wrap=True, min_width=12)
+    for col in ("name", "status", "phase", "iter", "progress", "created"):
+        table.add_column(col)
     for p in store.list_projects():
         table.add_row(p.id, p.name[:40], p.status, p.phase, str(p.iteration), f"{p.progress:.0f}%", str(p.created_at)[:16])
     console.print(table)
@@ -251,12 +299,20 @@ def main(argv: list[str] | None = None) -> int:
     serve.add_argument("--port", type=int)
     serve.add_argument("--no-browser", action="store_true")
 
+    resume = sub.add_parser("resume", help="continue an interrupted / paused / escalated project")
+    resume.add_argument("project_id")
+    resume.add_argument("--more-fixes", type=int, default=0, dest="more_fixes", help="grant N more fix iterations")
+    resume.add_argument("--approve-release", action="store_true", dest="approve_release", help="approve the pending release")
+    resume.add_argument("--yes", action="store_true", help="non-interactive")
+
     sub.add_parser("doctor", help="check the environment")
     sub.add_parser("list", help="list projects")
 
     args = parser.parse_args(argv)
     if args.cmd == "serve":
         return _serve(args)
+    if args.cmd == "resume":
+        return asyncio.run(_resume(args))
     if args.cmd == "doctor":
         return asyncio.run(_doctor(args))
     if args.cmd == "list":

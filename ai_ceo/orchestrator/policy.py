@@ -27,7 +27,6 @@ from ..agents.conventions import ROLE_TITLES, build_order, role_for_path
 from ..db import Project, Task
 from ..memory import MemoryKind, ProjectMemory
 from ..states import (
-    KIND_PHASE,
     VERIFICATION_KINDS,
     Phase,
     ProjectStatus,
@@ -438,6 +437,3 @@ class CEOPolicy:
         self.memory.set(MemoryKind.STATE, "ceo_revise_used", False, "ceo")
         self._assign_fixes(project, issues, reason=f"Client feedback: {feedback}")
         self.s.store.update_project(self.pid, status=ProjectStatus.RUNNING, status_reason="")
-
-    def phase_for(self, kind: str) -> Phase:
-        return KIND_PHASE.get(TaskKind(kind), Phase.IMPLEMENTATION)
