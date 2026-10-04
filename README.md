@@ -37,7 +37,8 @@ pip install -r requirements.txt
 # 2. A local model (default) — or set ANTHROPIC_API_KEY / OPENAI_API_KEY, see Configuration
 ollama pull llama3.1:8b
 
-# 3. Check the environment
+# 3. Check the environment (if "browser" fails and you have neither Edge nor Chrome:
+#    python -m playwright install chromium)
 python main.py doctor
 
 # 4a. Terminal: describe an idea and watch the company build it
@@ -65,7 +66,7 @@ QA → CEO → fix → regression-test loop catch and repair it.
 |---|---|
 | `python main.py` | Interactive: enter an idea, watch the live agent view, approve the release |
 | `python main.py run "<idea>" [--backend] [--approve] [--max-fix N] [--yes]` | Build an idea; `--backend` forces a FastAPI + SQLite app |
-| `python main.py resume <project-id> [--more-fixes N] [--approve-release]` | Continue an interrupted, paused, stopped or escalated project from where it left off |
+| `python main.py resume <project-id> [--feedback "..."] [--more-fixes N] [--approve-release]` | Continue an interrupted, paused, stopped or escalated project from where it left off — optionally steering it with feedback, granting more fix iterations, or approving the release |
 | `python main.py serve [--host H] [--port P]` | API + dashboard (default http://localhost:8000) |
 | `python main.py list` | List projects |
 | `python main.py doctor` | Check LLM, model, git, node and browser |

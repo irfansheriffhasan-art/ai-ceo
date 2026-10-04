@@ -24,7 +24,8 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="AICEO_",
-        env_file=".env",
+        # Project-root .env first, then one in the working directory (later files win).
+        env_file=(PROJECT_ROOT / ".env", ".env"),
         env_file_encoding="utf-8",
         extra="ignore",
     )

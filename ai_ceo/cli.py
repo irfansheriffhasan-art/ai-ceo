@@ -158,7 +158,11 @@ async def _resume(args: argparse.Namespace) -> int:
         return 2
     done = sum(1 for t in engine.s.store.list_tasks(project.id) if t.status == "completed")
     console.print(f"Resuming [bold]{project.name}[/bold] ({project.status}, {done} task(s) already done)")
-    if args.more_fixes:
+    if args.feedback:
+        await engine.feedback(project.id, args.feedback)
+        if engine.s.store.get_project(project.id).status not in (ProjectStatus.RUNNING,):
+            await engine.resume(project.id)
+    elif args.more_fixes:
         await engine.continue_fixing(project.id, args.more_fixes)
     elif args.approve_release:
         await engine.approve(project.id)
@@ -303,6 +307,7 @@ def main(argv: list[str] | None = None) -> int:
     resume.add_argument("project_id")
     resume.add_argument("--more-fixes", type=int, default=0, dest="more_fixes", help="grant N more fix iterations")
     resume.add_argument("--approve-release", action="store_true", dest="approve_release", help="approve the pending release")
+    resume.add_argument("--feedback", help="guidance / change request for the CEO (starts a fix iteration when escalated or delivered)")
     resume.add_argument("--yes", action="store_true", help="non-interactive")
 
     sub.add_parser("doctor", help="check the environment")
