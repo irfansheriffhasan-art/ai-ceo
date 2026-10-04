@@ -33,6 +33,9 @@ export default function AgentMonitor({
           const cur = a.current_task
           const liveTokens = cur ? tokens[a.role] ?? cur.tokens : 0
           const status = failedHere && a.status === 'idle' ? STATUS.error : s
+          // Live activity is tracked in memory; after a restart fall back to the task history.
+          const lastFinished = mine.map((t) => t.finished_at ?? '').sort().pop() || null
+          const lastActive = a.last_activity ? new Date(a.last_activity * 1000).toISOString() : lastFinished
           return (
             <div key={a.role} className={`agent ${a.status}`}>
               <div className="name">
@@ -77,7 +80,7 @@ export default function AgentMonitor({
                     <span style={{ width: `${pct}%` }} />
                   </div>
                   <div className="muted small">
-                    {a.last_activity ? `last active ${timeAgo(new Date(a.last_activity * 1000).toISOString())}` : 'not active yet'}
+                    {lastActive ? `last active ${timeAgo(lastActive)}` : 'not active yet'}
                   </div>
                 </>
               )}

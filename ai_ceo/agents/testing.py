@@ -25,6 +25,17 @@ _CLASS_RE = re.compile(r"""(?:className\s*=\s*|classList\.(?:add|toggle)\(\s*)['
 SOURCE_EXTENSIONS = (".html", ".css", ".js", ".py", ".sql")
 
 
+def _repro(sc: dict[str, Any]) -> str:
+    """Human-readable reproduction steps for a failed browser scenario (fed to the fixing developer)."""
+    steps = []
+    for i, st in enumerate(sc.get("steps", []), start=1):
+        value = f" '{st.get('value')}'" if st.get("value") else ""
+        steps.append(f"{i}) {st.get('action')} {st.get('selector') or 'page'}{value}")
+    failed = sc.get("failed_step")
+    where = f"; failed at step {failed + 1}" if isinstance(failed, int) else ""
+    return "Fresh page load, then: " + " → ".join(steps) + where
+
+
 def _code_files(files: dict[str, str]) -> dict[str, str]:
     """Everything except documentation (used for security scanning, which also covers config)."""
     return {p: s for p, s in files.items() if not p.startswith("docs/") and not p.endswith(".md")}
@@ -293,6 +304,8 @@ class TestingAgent(Agent):
                     + f"acceptance test failed: '{sc.get('criterion') or sc['name']}' — {sc['error']}",
                     file=js_path,
                     source="scenario",
+                    evidence=_repro(sc),
+                    suggestion="Reproduce these exact steps on a fresh page (default form values, empty localStorage) and make the final check pass.",
                 )
             )
         if test_defects:

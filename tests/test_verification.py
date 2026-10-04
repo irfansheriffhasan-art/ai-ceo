@@ -72,6 +72,8 @@ def test_browser_harness_semantics(tmp_path):
     scenarios = [
         {"name": "value via expect_text", "steps": steps(("click", "#go", ""), ("expect_text", "#pw", "abcdef"))},
         {"name": "length", "steps": steps(("click", "#go", ""), ("expect_length", "#pw", "10"))},
+        {"name": "regex expectation", "steps": steps(("click", "#go", ""), ("expect_text", "#pw", "^[a-j]{10}$"))},
+        {"name": "regex mismatch fails", "steps": steps(("click", "#go", ""), ("expect_text", "#pw", ".*[0-9].*"))},
         {"name": "empty expectation is not vacuous", "steps": steps(("expect_text", "#pw", ""))},
         {"name": "hallucinated selector", "steps": steps(("click", "#does-not-exist", ""))},
     ]
@@ -81,6 +83,8 @@ def test_browser_harness_semantics(tmp_path):
     res = {s["name"]: s for s in r["scenarios"]}
     assert res["value via expect_text"]["passed"]
     assert res["length"]["passed"]
+    assert res["regex expectation"]["passed"]
+    assert not res["regex mismatch fails"]["passed"]
     assert not res["empty expectation is not vacuous"]["passed"]
     assert res["hallucinated selector"]["defect"] == "test"
 

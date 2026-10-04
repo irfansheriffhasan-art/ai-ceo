@@ -48,7 +48,7 @@ def _format_issues(issues: list[dict[str, Any]]) -> str:
         loc = f"{i.get('file', '')}{':' + str(i['line']) if i.get('line') else ''}"
         line = f"- [{i.get('severity', 'error')}] {loc} {i.get('message', '')}".strip()
         if i.get("evidence"):
-            line += f"\n  evidence: {str(i['evidence'])[:300]}"
+            line += f"\n  evidence: {str(i['evidence'])[:600]}"
         if i.get("suggestion"):
             line += f"\n  suggestion: {str(i['suggestion'])[:300]}"
         lines.append(line)

@@ -163,6 +163,7 @@ def _run_scenario(
     out: dict[str, Any] = {
         "name": sc.get("name", "scenario"),
         "criterion": sc.get("criterion", ""),
+        "steps": sc.get("steps", [])[:15],
         "passed": False,
         "steps_run": 0,
         "failed_step": None,
@@ -217,6 +218,19 @@ _TEXTS_JS = """els => els.map(e => ['INPUT', 'TEXTAREA', 'SELECT', 'OUTPUT'].inc
     ? (e.value ?? '') : (e.innerText ?? ''))"""
 
 
+_REGEX_HINT = re.compile(r"\.\*|\.\+|\\[dws]|\[[^\]]+\]|^\^|\$$|\{\d+(,\d*)?\}")
+
+
+def _as_regex(value: str) -> re.Pattern[str] | None:
+    """Models often write regex expectations (e.g. '.*[A-Z].*'); honour them when unambiguous."""
+    if not _REGEX_HINT.search(value):
+        return None
+    try:
+        return re.compile(value, re.IGNORECASE)
+    except re.error:
+        return None
+
+
 def _texts(loc: Any) -> list[str]:
     """Visible text of each match; form fields contribute their current value."""
     try:
@@ -248,9 +262,16 @@ def _do_step(page: Any, action: str, selector: str, value: str, timeout: int) ->
         if not needle:  # "has some text": an empty expectation would otherwise pass vacuously
             if not _poll(lambda: any(t.strip() for t in _texts(loc)), timeout):
                 raise AssertionError("expected non-empty text, found nothing")
-        elif not _poll(lambda: any(needle in t.lower() for t in _texts(loc)), timeout):
-            texts = " | ".join(t.strip()[:60] for t in _texts(loc)[:3])
-            raise AssertionError(f"expected text containing '{value}', found: {texts or '(nothing)'}")
+        else:
+            pattern = _as_regex(value.strip())
+
+            def matches(t: str) -> bool:
+                return bool(pattern.search(t)) if pattern else needle in t.lower()
+
+            if not _poll(lambda: any(matches(t) for t in _texts(loc)), timeout):
+                texts = " | ".join(t.strip()[:60] for t in _texts(loc)[:3])
+                kind = "matching /" if pattern else "containing '"
+                raise AssertionError(f"expected text {kind}{value}{'/' if pattern else chr(39)}, found: {texts or '(nothing)'}")
     elif action == "expect_length":
         m = re.match(r"\s*(>=|<=|>|<)?\s*(\d+)", value or "1")
         op, n = (m.group(1) or "=="), int(m.group(2)) if m else 1
