@@ -21,13 +21,15 @@ Write browser test scenarios: one per acceptance criterion, at most 6. Allowed a
 - check: tick the checkbox at `selector`
 - wait: wait `value` milliseconds (max 3000)
 - expect_visible / expect_hidden: `selector` is visible / hidden
+- expect_disabled / expect_enabled: the button or input at `selector` is disabled / enabled
 - expect_text: an element matching `selector` contains the text `value` (case-insensitive; inputs are checked by their value). `value` may also be a regular expression such as "[A-Z]" or "^[0-9]+$". Use value "" to check the element is simply not empty.
 - expect_length: the text/value of `selector` has exactly `value` characters ("12") or at least (">=8")
 - expect_count: number of elements matching `selector` equals `value` ("2") or is at least `value` (">=1")
 - expect_value: the input at `selector` has exactly the value `value`
 
 Rules:
-- Use ONLY selectors that exist in the HTML above, or class names created by the JavaScript. Prefer ids like "#task-input".
+- `selector` is always a CSS selector for an element on the page (e.g. "#task-input", ".task-item"), never JavaScript. Use ONLY selectors that exist in the HTML above, or class names created by the JavaScript.
+- Test only what a user can see or do on the page: you cannot inspect localStorage or JavaScript variables.
 - Every scenario starts from a fresh page load with empty storage, so it must create any data it checks.
 - 2-8 steps per scenario. Each scenario must end with at least one expect_* step that would FAIL if the feature were broken.
 - Never check for a number as text when you mean a length or a count: use expect_length or expect_count.

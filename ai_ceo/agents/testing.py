@@ -25,6 +25,11 @@ _CLASS_RE = re.compile(r"""(?:className\s*=\s*|classList\.(?:add|toggle)\(\s*)['
 SOURCE_EXTENSIONS = (".html", ".css", ".js", ".py", ".sql")
 
 
+def _scenario_key(sc: dict[str, Any]) -> str:
+    """Models reuse one criterion for several scenarios, so the key must include the scenario name."""
+    return f"{sc.get('name', '')} | {sc.get('criterion', '')}"
+
+
 def _repro(sc: dict[str, Any]) -> str:
     """Human-readable reproduction steps for a failed browser scenario (fed to the fixing developer)."""
     steps = []
@@ -278,7 +283,7 @@ class TestingAgent(Agent):
         current_status: dict[str, bool] = {}
         test_defects = 0
         for sc in runtime.get("scenarios", []):
-            key = sc.get("criterion") or sc.get("name", "")
+            key = _scenario_key(sc)
             if sc.get("passed"):
                 total += 1
                 passed += 1
@@ -346,7 +351,7 @@ class TestingAgent(Agent):
         streak: dict[str, Any] = dict(ctx.memory.get(MemoryKind.TEST_RESULT, "failure_streak", {}) or {})
         disputed = []
         for sc in scenarios:
-            key = sc.get("criterion") or sc.get("name", "")
+            key = _scenario_key(sc)
             if sc.get("passed") or sc.get("defect") == "test":
                 streak.pop(key, None)
                 continue

@@ -71,11 +71,28 @@ def _selector_tokens(selector: str) -> list[str]:
     return _TOKEN_RE.findall(selector)
 
 
+_JS_AS_SELECTOR = re.compile(r"\b(localStorage|sessionStorage|document|window|console)\b|\w\.\w+\(")
+_WRONG_ACTION = ("is not an <input>", "not a checkbox", "not a <select>", "is not a <select>", "not an html")
+
+
 def _classify_missing(selector: str, source_text: str) -> str:
-    """A selector naming ids/classes that appear nowhere in the code is a test defect."""
+    """A selector that isn't CSS, or names ids/classes that appear nowhere in the code, is a test defect."""
+    if _JS_AS_SELECTOR.search(selector):
+        return "test"
     tokens = _selector_tokens(selector)
     if tokens and any(tok not in source_text for tok in tokens):
         return "test"
+    return "app"
+
+
+def _classify_error(message: str, selector: str, missing: bool, source_text: str) -> str:
+    lowered = message.lower()
+    if "selector" in lowered and ("valid" in lowered or "unexpected" in lowered or "parse" in lowered):
+        return "test"
+    if any(m in lowered for m in _WRONG_ACTION):
+        return "test"  # e.g. expect_value on a <button>: the test used the wrong action
+    if selector and missing:
+        return _classify_missing(selector, source_text)
     return "app"
 
 
@@ -142,7 +159,7 @@ def run_browser_suite(
             ctx.close()
 
             # ---- scenarios -------------------------------------------------------------
-            for sc in scenarios[:8]:
+            for sc in scenarios[:10]:
                 result["scenarios"].append(
                     _run_scenario(browser, url, sc, step_timeout_ms, source_text, PWError)
                 )
@@ -177,17 +194,13 @@ def _run_scenario(
             action, selector, value = step.get("action"), (step.get("selector") or "").strip(), step.get("value") or ""
             try:
                 _do_step(page, action, selector, value, timeout)
-            except AssertionError as e:
-                out.update(failed_step=i, error=f"step {i + 1} {action} '{selector}': {e}", defect="app")
-                break
-            except PWError as e:
-                msg = str(e).splitlines()[0][:240]
-                if "selector" in msg.lower() and ("valid" in msg.lower() or "unexpected" in msg.lower()):
-                    defect = "test"
-                elif selector and page.locator(selector).count() == 0:
-                    defect = _classify_missing(selector, source_text)
-                else:
-                    defect = "app"
+            except (AssertionError, PWError) as e:
+                msg = str(e).splitlines()[0][:240] if str(e) else type(e).__name__
+                try:
+                    missing = bool(selector) and page.locator(selector).count() == 0
+                except PWError:
+                    missing = True
+                defect = _classify_error(msg, selector, missing, source_text)
                 out.update(failed_step=i, error=f"step {i + 1} {action} '{selector}': {msg}", defect=defect)
                 break
             out["steps_run"] = i + 1
@@ -241,6 +254,8 @@ def _texts(loc: Any) -> list[str]:
 
 def _do_step(page: Any, action: str, selector: str, value: str, timeout: int) -> None:
     loc = page.locator(selector or "body")
+    if selector:
+        loc.count()  # raises immediately for selectors that aren't valid CSS
     if action == "fill":
         loc.first.fill(value, timeout=timeout)
     elif action == "click":
@@ -257,6 +272,11 @@ def _do_step(page: Any, action: str, selector: str, value: str, timeout: int) ->
         loc.first.wait_for(state="visible", timeout=timeout)
     elif action == "expect_hidden":
         loc.first.wait_for(state="hidden", timeout=timeout)
+    elif action in ("expect_disabled", "expect_enabled"):
+        want_disabled = action == "expect_disabled"
+        loc.first.wait_for(state="attached", timeout=timeout)
+        if not _poll(lambda: loc.first.is_disabled() == want_disabled, timeout):
+            raise AssertionError(f"expected element to be {'disabled' if want_disabled else 'enabled'}")
     elif action == "expect_text":
         needle = value.strip().lower()
         if not needle:  # "has some text": an empty expectation would otherwise pass vacuously

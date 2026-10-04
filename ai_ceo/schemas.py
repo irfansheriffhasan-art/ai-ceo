@@ -121,6 +121,8 @@ TestAction = Literal[
     "wait",
     "expect_visible",
     "expect_hidden",
+    "expect_disabled",
+    "expect_enabled",
     "expect_text",
     "expect_length",
     "expect_count",

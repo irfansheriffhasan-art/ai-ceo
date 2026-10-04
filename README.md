@@ -99,6 +99,13 @@ QA → CEO → fix → regression-test loop catch and repair it.
   kept) and escalates to you. You can approve anyway, grant more iterations or give feedback.
 - **Invalid tests:** when a scenario references elements that exist nowhere in the code, it is
   classified as a *test* defect and rewritten. No developer is sent to "fix" working code.
+- **Test disputes:** a scenario that fails identically twice, even though developers fixed the code
+  in between, is re-validated by QA. Wrong tests then stop burning fix iterations; random output,
+  for example, must be checked by length or regex, never against an exact string.
+- **Reproduction steps:** every failed acceptance test reaches the developer with exact repro steps
+  from a fresh page load, like a real QA ticket.
+- **Bounded shared memory:** only the CEO, the platform rules and the client can set constraints. A
+  planner's advisory notes can't override them in every developer's prompt.
 - **Timeouts** apply to every model call and every task.
 - **Restarts:** interrupted tasks are re-queued and the project is parked as paused. Continue it with
   `resume` or the dashboard.

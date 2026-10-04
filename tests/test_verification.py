@@ -65,8 +65,9 @@ def test_browser_harness_semantics(tmp_path):
     from ai_ceo.verification.servers import StaticServer
 
     (tmp_path / "index.html").write_text(
-        '<!DOCTYPE html><html><body><input id="pw"><button id="go">Go</button>'
-        "<script>document.getElementById('go').onclick=()=>{document.getElementById('pw').value='abcdefghij'}</script></body></html>"
+        '<!DOCTYPE html><html><body><input id="pw"><button id="go">Go</button><button id="copy" disabled>Copy</button>'
+        "<script>document.getElementById('go').onclick=()=>{document.getElementById('pw').value='abcdefghij';"
+        "document.getElementById('copy').disabled=false;localStorage.setItem('password','x')}</script></body></html>"
     )
     steps = lambda *s: [{"action": a, "selector": sel, "value": v} for a, sel, v in s]  # noqa: E731
     scenarios = [
@@ -76,6 +77,10 @@ def test_browser_harness_semantics(tmp_path):
         {"name": "regex mismatch fails", "steps": steps(("click", "#go", ""), ("expect_text", "#pw", ".*[0-9].*"))},
         {"name": "empty expectation is not vacuous", "steps": steps(("expect_text", "#pw", ""))},
         {"name": "hallucinated selector", "steps": steps(("click", "#does-not-exist", ""))},
+        # Both observed from llama3.1:8b in a real run; they are test defects, not app bugs.
+        {"name": "javascript as selector", "steps": steps(("click", "#go", ""), ("expect_length", "localStorage.getItem('password')", ">=1"))},
+        {"name": "wrong action for element", "steps": steps(("expect_value", "#copy", "disabled"))},
+        {"name": "disabled then enabled", "steps": steps(("expect_disabled", "#copy", ""), ("click", "#go", ""), ("expect_enabled", "#copy", ""))},
     ]
     with StaticServer(tmp_path) as srv:
         r = run_browser_suite(srv.url, "index.html", scenarios, channel="auto", screenshot_path=None,
@@ -87,6 +92,9 @@ def test_browser_harness_semantics(tmp_path):
     assert not res["regex mismatch fails"]["passed"]
     assert not res["empty expectation is not vacuous"]["passed"]
     assert res["hallucinated selector"]["defect"] == "test"
+    assert res["javascript as selector"]["defect"] == "test"
+    assert res["wrong action for element"]["defect"] == "test"
+    assert res["disabled then enabled"]["passed"]
 
 
 def test_static_server_blocks_dotfiles(tmp_path):
