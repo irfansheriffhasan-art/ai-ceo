@@ -207,7 +207,7 @@ pipeline is much faster per iteration and needs far fewer fix iterations.
 ## Testing the platform
 
 ```powershell
-python -m pytest            # 63 tests, about 2–3 minutes (uses a real headless browser when available)
+python -m pytest            # 64 tests, about 2–3 minutes (uses a real headless browser when available)
 cd web; npm run typecheck   # dashboard type check
 ```
 
