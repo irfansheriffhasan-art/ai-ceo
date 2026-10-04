@@ -97,6 +97,25 @@ def test_browser_harness_semantics(tmp_path):
     assert res["disabled then enabled"]["passed"]
 
 
+@pytest.mark.browser
+def test_unprintable_output_is_caught(tmp_path):
+    """Observed in a real run: random bytes rendered via String.fromCharCode passed length/regex checks."""
+    from ai_ceo.verification.browser import run_browser_suite
+    from ai_ceo.verification.servers import StaticServer
+
+    (tmp_path / "index.html").write_text(
+        '<!DOCTYPE html><html><body><p id="out"></p><button id="go">Go</button><script>'
+        "document.getElementById('go').onclick=()=>{document.getElementById('out').textContent="
+        "Array.from(crypto.getRandomValues(new Uint8Array(12)),b=>String.fromCharCode(128+(b%31))).join('')+'Ab1!'}"
+        "</script></body></html>"
+    )
+    sc = [{"name": "garbage", "steps": [{"action": "click", "selector": "#go", "value": ""}, {"action": "expect_length", "selector": "#out", "value": ">=12"}]}]
+    with StaticServer(tmp_path) as srv:
+        r = run_browser_suite(srv.url, "index.html", sc, channel="auto", screenshot_path=None, source_text="", step_timeout_ms=1500)
+    result = r["scenarios"][0]
+    assert not result["passed"] and result["defect"] == "app" and "unprintable" in result["error"]
+
+
 def test_static_server_blocks_dotfiles(tmp_path):
     import httpx
 

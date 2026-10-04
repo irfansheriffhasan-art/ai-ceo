@@ -208,6 +208,10 @@ def _run_scenario(
             out["passed"] = not errors
             if errors:
                 out.update(error=f"uncaught exception: {errors[0]}", defect="app")
+            else:
+                garbage = _unprintable_on_page(page)
+                if garbage:
+                    out.update(passed=False, error=garbage, defect="app")
         if errors and not out["error"]:
             out["error"] = f"uncaught exception: {errors[0]}"
     except PWError as e:
@@ -215,6 +219,26 @@ def _run_scenario(
     finally:
         ctx.close()
     return out
+
+
+_CONTROL_CHARS = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]")
+_VISIBLE_TEXT_JS = """() => [document.body ? document.body.innerText : '',
+  ...Array.from(document.querySelectorAll('input, textarea, output')).map(e => e.value || '')].join('\\n')"""
+
+
+def _unprintable_on_page(page: Any) -> str:
+    """Control characters on screen are always a bug (typically raw bytes turned into characters)."""
+    try:
+        text = page.evaluate(_VISIBLE_TEXT_JS)
+    except Exception:  # noqa: BLE001 - page navigated or closed
+        return ""
+    bad = _CONTROL_CHARS.findall(text or "")
+    if not bad:
+        return ""
+    return (
+        f"page displays {len(bad)} unprintable control character(s) (e.g. {bad[0]!r}) — output is probably built "
+        "by converting raw numbers/bytes to characters; map them onto an explicit set of allowed characters instead"
+    )
 
 
 def _poll(fn: Any, timeout_ms: int) -> bool:
