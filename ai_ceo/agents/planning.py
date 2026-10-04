@@ -53,9 +53,10 @@ class PlannerAgent(Agent):
         out = await ctx.structured(
             StrategyOutput, "planner_strategy", "delivery strategy", max_tokens=900, brief=ctx.memory.brief(2500)
         )
+        # Risks stay advisory (stored in the strategy, shown in the dashboard). They are NOT promoted to
+        # constraints: constraints reach every developer prompt, and a planner's suggestion such as
+        # "use library X" would then override the platform rules (observed in a real run: crypto-js).
         ctx.memory.set(MemoryKind.STRATEGY, "plan", out.model_dump(), self.role)
-        for risk in out.risks[:3]:
-            ctx.memory.add_constraint(f"Risk to manage: {risk}", self.role)
         return AgentResult(
             summary=f"{len(out.milestones)} milestones; DoD has {len(out.definition_of_done)} checks",
             output=out.model_dump(),

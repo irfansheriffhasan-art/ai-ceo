@@ -153,6 +153,8 @@ class TestingAgent(Agent):
         cached = ctx.memory.get(MemoryKind.TEST_PLAN, "browser")
         if not feedback and cached and cached.get("hash") == digest and not cached.get("needs_revision"):
             return cached["scenarios"]
+        if not feedback and cached and cached.get("revision_feedback"):
+            feedback = cached["revision_feedback"]
         criteria = ctx.memory.acceptance_criteria()
         if not criteria:
             return []
@@ -313,6 +315,7 @@ class TestingAgent(Agent):
             if plan:
                 plan["needs_revision"] = True
                 ctx.memory.set(MemoryKind.TEST_PLAN, "browser", plan, self.role)
+        self._dispute_stubborn_failures(ctx, runtime.get("scenarios", []))
         ctx.memory.set(MemoryKind.TEST_RESULT, "scenario_status", {**previous, **current_status}, self.role)
 
         for case in runtime.get("api", []):
@@ -333,6 +336,43 @@ class TestingAgent(Agent):
                     )
                 )
         return issues, total, passed
+
+    def _dispute_stubborn_failures(self, ctx: AgentContext, scenarios: list[dict[str, Any]]) -> None:
+        """Test disputes: a scenario that keeps failing the same way after fixes may be a wrong test.
+
+        After two consecutive identical failures the plan is flagged for revision, with the evidence,
+        so the next run re-derives that test instead of sending developers after an unfixable target.
+        """
+        streak: dict[str, Any] = dict(ctx.memory.get(MemoryKind.TEST_RESULT, "failure_streak", {}) or {})
+        disputed = []
+        for sc in scenarios:
+            key = sc.get("criterion") or sc.get("name", "")
+            if sc.get("passed") or sc.get("defect") == "test":
+                streak.pop(key, None)
+                continue
+            signature = f"{sc.get('failed_step')}|{(sc.get('error') or '')[:60]}"
+            prev = streak.get(key) or {}
+            count = prev.get("count", 0) + 1 if prev.get("signature") == signature else 1
+            streak[key] = {"signature": signature, "count": count}
+            if count >= 2:
+                disputed.append(sc)
+                streak.pop(key)
+        ctx.memory.set(MemoryKind.TEST_RESULT, "failure_streak", streak, self.role)
+        if not disputed:
+            return
+        plan = ctx.memory.get(MemoryKind.TEST_PLAN, "browser")
+        if plan:
+            plan["needs_revision"] = True
+            plan["revision_feedback"] = (
+                "These scenarios failed identically twice even after developers fixed the code. Re-check that each "
+                "is a correct, deterministic test of its criterion (random output must not be compared to an exact string):\n"
+                + "\n".join(f"- '{sc['name']}': {sc.get('error', '')[:200]}" for sc in disputed)
+            )
+            ctx.memory.set(MemoryKind.TEST_PLAN, "browser", plan, self.role)
+        ctx.note(
+            f"Testing Agent disputes {len(disputed)} stubborn test(s) and will re-validate them next run",
+            level="warning",
+        )
 
     def _update_memory(self, ctx: AgentContext, issues: list[Issue], passed: bool, score: float, details: dict[str, Any]) -> None:
         open_now = {i.fingerprint: i for i in issues if i.severity == "error"}
