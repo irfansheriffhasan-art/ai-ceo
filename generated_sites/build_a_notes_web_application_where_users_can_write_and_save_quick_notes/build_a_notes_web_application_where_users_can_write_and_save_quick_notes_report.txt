@@ -1,0 +1,21 @@
+
+AI CEO SYSTEM REPORT
+--------------------
+
+Idea:
+Build a notes web application where users can write and save quick notes.
+
+Generated Project:
+build_a_notes_web_application_where_users_can_write_and_save_quick_notes
+
+Files:
+index.html
+style.css
+script.js
+
+Agents:
+CEO AI
+R&D AI
+Builder AI
+Tester AI
+Fixer AI

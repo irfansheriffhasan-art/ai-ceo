@@ -1,0 +1,16 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# Secrets / local config
+.env
+
+# Runtime data (DB, logs, generated project workspaces with their own git repos, releases)
+data/
+
+# Frontend
+web/node_modules/
+web/dist/

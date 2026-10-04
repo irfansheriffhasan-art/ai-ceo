@@ -1,0 +1,21 @@
+
+AI CEO SYSTEM REPORT
+--------------------
+
+Idea:
+build a kids drawing booklet
+
+Generated Project:
+build_a_kids_drawing_booklet
+
+Files:
+index.html
+style.css
+script.js
+
+Agents:
+CEO AI
+R&D AI
+Builder AI
+Tester AI
+Fixer AI
