@@ -156,6 +156,10 @@ class DeveloperAgent(Agent):
                 return "not a complete HTML document (missing <html> or </html>)"
             if "app.js" not in code or "style.css" not in code:
                 return "index.html must link style.css and load app.js"
+            broken = parse_html(code).malformed_attrs
+            if broken:
+                tag, attr = broken[0]
+                return f'<{tag}> attribute "{attr}" is missing its closing quote, which swallows the elements after it'
         elif ext == ".js":
             compat = browser_compat_problems(code)
             if compat:

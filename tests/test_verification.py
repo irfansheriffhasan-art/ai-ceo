@@ -29,6 +29,16 @@ def test_static_checks_find_common_small_model_bugs():
     assert {"broken_reference", "browser_compat", "dom_reference", "syntax", "missing_file"} <= cats
 
 
+def test_missing_attribute_quote_is_an_error():
+    # Verbatim from a real llama3.1:8b build: the missing quote swallowed the "=" and "Clear" buttons.
+    html = HTML.replace(
+        '<input id="name">',
+        '<button id="divide-button" type="button>/</button>\n<button id="equals-button" type="button">=</button>',
+    )
+    issues = run_static_checks({"index.html": html}, ["index.html"])
+    assert any(i.category == "html_syntax" and i.severity == "error" and i.file == "index.html" for i in issues)
+
+
 def test_python_import_policy():
     issues = run_static_checks({"backend/main.py": "import requests\nfrom fastapi import FastAPI\n"}, [])
     assert any(i.category == "dependency" and "requests" in i.message for i in issues)

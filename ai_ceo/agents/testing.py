@@ -303,13 +303,17 @@ class TestingAgent(Agent):
             total += 1
             current_status[key] = False
             regression = previous.get(key) is True
+            # An element the test needs is absent from the rendered page although the source mentions it:
+            # the HTML is at fault (e.g. malformed markup), not the JavaScript.
+            html_fault = bool(sc.get("missing"))
             issues.append(
                 Issue(
                     "error",
                     "regression" if regression else "acceptance",
                     ("REGRESSION — previously passing. " if regression else "")
-                    + f"acceptance test failed: '{sc.get('criterion') or sc['name']}' — {sc['error']}",
-                    file=js_path,
+                    + f"acceptance test failed: '{sc.get('criterion') or sc['name']}' — {sc['error']}"
+                    + (" — the element is not on the rendered page; check index.html for malformed markup" if html_fault else ""),
+                    file=html_path if html_fault else js_path,
                     source="scenario",
                     evidence=_repro(sc),
                     suggestion="Reproduce these exact steps on a fresh page (default form values, empty localStorage) and make the final check pass.",

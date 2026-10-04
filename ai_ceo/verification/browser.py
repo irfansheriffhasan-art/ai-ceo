@@ -201,7 +201,7 @@ def _run_scenario(
                 except PWError:
                     missing = True
                 defect = _classify_error(msg, selector, missing, source_text)
-                out.update(failed_step=i, error=f"step {i + 1} {action} '{selector}': {msg}", defect=defect)
+                out.update(failed_step=i, error=f"step {i + 1} {action} '{selector}': {msg}", defect=defect, missing=missing)
                 break
             out["steps_run"] = i + 1
         else:

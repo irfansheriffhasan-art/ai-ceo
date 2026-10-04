@@ -45,6 +45,8 @@ class HtmlInfo:
     inline_handlers: list[str] = field(default_factory=list)
     blank_targets_without_noopener: int = 0
     unclosed: list[str] = field(default_factory=list)
+    # (tag, attribute) whose value contains markup — almost always a missing closing quote
+    malformed_attrs: list[tuple[str, str]] = field(default_factory=list)
 
 
 _VOID = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"}
@@ -67,6 +69,10 @@ class _Collector(HTMLParser):
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         a = {k: (v or "") for k, v in attrs}
         self.info.tags.append(tag)
+        for k, v in attrs:  # raw list: a broken quote often yields duplicate names that a dict would hide
+            v = v or ""
+            if k not in ("value", "placeholder", "title", "alt", "content", "onclick") and ("<" in v or ">" in v):
+                self.info.malformed_attrs.append((tag, k))
         if tag not in _VOID:
             self._stack.append(tag)
         if "id" in a and a["id"]:

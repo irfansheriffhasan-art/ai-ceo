@@ -100,6 +100,18 @@ def run_static_checks(files: dict[str, str], expected_files: list[str], node_pat
                 issues.append(Issue("warning", "html_structure", "missing or empty <title>", file=path, source="static"))
             if not h.has_viewport:
                 issues.append(Issue("warning", "responsive", "missing viewport meta tag", file=path, source="static"))
+            for tag, attr in h.malformed_attrs[:5]:
+                issues.append(
+                    Issue(
+                        "error",
+                        "html_syntax",
+                        f'<{tag}> attribute "{attr}" swallows the following markup — a closing quote is missing, '
+                        "so elements after it never appear on the page",
+                        file=path,
+                        source="static",
+                        suggestion='Close every attribute value with a quote, e.g. type="button".',
+                    )
+                )
             for dup, n in Counter(h.ids).items():
                 if n > 1:
                     issues.append(Issue("warning", "html_structure", f"duplicate id '{dup}' ({n}x)", file=path, source="static"))
