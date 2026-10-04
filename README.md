@@ -2,11 +2,19 @@
 
 # AI-CEO
 
+[![CI](https://github.com/irfansheriffhasan-art/ai-ceo/actions/workflows/ci.yml/badge.svg)](https://github.com/irfansheriffhasan-art/ai-ceo/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)
+![React](https://img.shields.io/badge/React-TypeScript-61DAFB?logo=react&logoColor=black)
+![Runs locally](https://img.shields.io/badge/runs%20locally-Ollama-black)
+
 ### Describe an app. An AI software company builds it.
 
 A CEO, product manager, architect, designer, developers, QA, security and code reviewers —
 **14 AI agents** that plan, write the code, **test it in a real browser**, fix what fails and ship a working app.
 Runs fully local on your own GPU (Ollama), or with Claude / OpenAI.
+
+Built by **[Irfan Sheriff Hasan](https://www.linkedin.com/in/irfan-sheriff-h-488562429/)**
 
 ![AI-CEO demo: type a prompt, watch the team build, get a working app](docs/images/demo.gif)
 
@@ -48,7 +56,7 @@ You need **Python 3.11+**, **Node 18+** and **Git**. For local models, also inst
 
 **Windows (PowerShell)**
 ```powershell
-git clone <this-repo-url> ai-ceo
+git clone https://github.com/irfansheriffhasan-art/ai-ceo.git
 cd ai-ceo
 powershell -ExecutionPolicy Bypass -File setup.ps1   # one time: venv, packages, web UI, browser, model
 powershell -ExecutionPolicy Bypass -File start.ps1   # opens the Studio, already signed in
@@ -56,7 +64,7 @@ powershell -ExecutionPolicy Bypass -File start.ps1   # opens the Studio, already
 
 **macOS / Linux**
 ```bash
-git clone <this-repo-url> ai-ceo && cd ai-ceo
+git clone https://github.com/irfansheriffhasan-art/ai-ceo.git && cd ai-ceo
 chmod +x setup.sh start.sh
 ./setup.sh
 ./start.sh
@@ -314,3 +322,13 @@ Docker was not available on the development machine, so this image has not been 
 - Single-operator authentication; there are no user accounts or roles.
 - The orchestrator runs in-process. Running several projects concurrently is supported, but they share
   one GPU.
+
+## Author
+
+**Irfan Sheriff Hasan** — [LinkedIn](https://www.linkedin.com/in/irfan-sheriff-h-488562429/) · [GitHub](https://github.com/irfansheriffhasan-art)
+
+If this project is useful or interesting to you, a ⭐ on GitHub helps others find it.
+
+## License
+
+[MIT](LICENSE)
