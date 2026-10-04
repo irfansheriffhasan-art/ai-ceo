@@ -1,17 +1,8 @@
-from rich.console import Console
-from ceo_ai import ceo_ai
+"""AI-CEO entry point. Run `python main.py --help` for all commands."""
 
-console = Console()
+import sys
 
-console.print("""
-[bold cyan]
-████████████████████████████████
- AI-CEO AUTONOMOUS DEV PLATFORM
- Multi-Agent Software Company
-████████████████████████████████
-[/bold cyan]
-""")
+from ai_ceo.cli import main
 
-idea = input("Enter project idea: ")
-
-ceo_ai(idea)
+if __name__ == "__main__":
+    sys.exit(main())
