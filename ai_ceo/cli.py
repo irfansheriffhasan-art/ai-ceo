@@ -312,7 +312,17 @@ def _print_model_hint(settings: Settings) -> None:
         console.print(f"Model: ollama / {settings.llm_model} [green]ready[/green]")
 
 
+def _utf8_output() -> None:
+    """Never crash on output encoding: redirected output on Windows defaults to cp1252 (no box-drawing chars)."""
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[union-attr]
+        except (AttributeError, ValueError):
+            pass
+
+
 def main(argv: list[str] | None = None) -> int:
+    _utf8_output()
     parser = argparse.ArgumentParser(prog="ai-ceo", description="AI-CEO autonomous multi-agent software company")
     parser.add_argument("--provider", choices=["ollama", "anthropic", "openai", "mock"], help="LLM provider override")
     parser.add_argument("--model", help="LLM model override")
