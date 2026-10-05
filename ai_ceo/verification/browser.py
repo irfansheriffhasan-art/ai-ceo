@@ -316,6 +316,10 @@ def _do_step(page: Any, action: str, selector: str, value: str, timeout: int) ->
                 texts = " | ".join(t.strip()[:60] for t in _texts(loc)[:3])
                 kind = "matching /" if pattern else "containing '"
                 raise AssertionError(f"expected text {kind}{value}{'/' if pattern else chr(39)}, found: {texts or '(nothing)'}")
+    elif action == "expect_empty":
+        if not _poll(lambda: all(not t.strip() for t in _texts(loc)), timeout):
+            texts = " | ".join(t.strip()[:60] for t in _texts(loc)[:3])
+            raise AssertionError(f"expected the element to be empty, found: {texts}")
     elif action == "expect_length":
         m = re.match(r"\s*(>=|<=|>|<)?\s*(\d+)", value or "1")
         op, n = (m.group(1) or "=="), int(m.group(2)) if m else 1

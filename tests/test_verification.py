@@ -92,6 +92,7 @@ def test_browser_harness_semantics(tmp_path):
         {"name": "javascript as selector", "steps": steps(("click", "#go", ""), ("expect_length", "localStorage.getItem('password')", ">=1"))},
         {"name": "wrong action for element", "steps": steps(("expect_value", "#copy", "disabled"))},
         {"name": "disabled then enabled", "steps": steps(("expect_disabled", "#copy", ""), ("click", "#go", ""), ("expect_enabled", "#copy", ""))},
+        {"name": "empty before, not empty after", "steps": steps(("expect_empty", "#pw", ""), ("click", "#go", ""), ("expect_text", "#pw", ""))},
     ]
     with StaticServer(tmp_path) as srv:
         r = run_browser_suite(srv.url, "index.html", scenarios, channel="auto", screenshot_path=None,
@@ -106,6 +107,7 @@ def test_browser_harness_semantics(tmp_path):
     assert res["javascript as selector"]["defect"] == "test"
     assert res["wrong action for element"]["defect"] == "test"
     assert res["disabled then enabled"]["passed"]
+    assert res["empty before, not empty after"]["passed"]
 
 
 @pytest.mark.browser

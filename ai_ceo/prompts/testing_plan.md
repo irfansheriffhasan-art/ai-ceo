@@ -23,6 +23,7 @@ Write browser test scenarios: one per acceptance criterion, at most 6. Allowed a
 - expect_visible / expect_hidden: `selector` is visible / hidden
 - expect_disabled / expect_enabled: the button or input at `selector` is disabled / enabled
 - expect_text: an element matching `selector` contains the text `value` (case-insensitive; inputs are checked by their value). `value` may also be a regular expression such as "[A-Z]" or "^[0-9]+$". Use value "" to check the element is simply not empty.
+- expect_empty: the element (or input) at `selector` is empty, e.g. after clearing
 - expect_length: the text/value of `selector` has exactly `value` characters ("12") or at least (">=8")
 - expect_count: number of elements matching `selector` equals `value` ("2") or is at least `value` (">=1")
 - expect_value: the input at `selector` has exactly the value `value`

@@ -141,6 +141,7 @@ def file_rules(path: str, arch: dict[str, Any], html_ids: list[str] | None = Non
         rules = [
             "- Vanilla browser JavaScript only: no frameworks, no import/export, no external libraries. Never use require(), module.exports or process — they do not exist in browsers.",
             "- For randomness that must be secure (passwords, tokens, ids) use crypto.getRandomValues(); never Math.random().",
+            "- Never use eval(), new Function() or setTimeout with a string. For calculations, parse the numbers and apply the operator explicitly (e.g. a switch on '+', '-', '*', '/').",
             "- Form fields are read and written with .value (not textContent).",
             f"- Use ONLY these element ids from index.html: {', '.join(html_ids or []) or '(see HTML below)'}. Never invent ids.",
             "- The script is loaded with `defer`, so the DOM is ready when it runs.",
