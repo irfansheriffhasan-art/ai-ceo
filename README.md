@@ -14,7 +14,7 @@ A CEO, product manager, architect, designer, developers, QA, security and code r
 **14 AI agents** that plan, write the code, **test it in a real browser**, fix what fails and ship a working app.
 Runs fully local on your own GPU (Ollama), or with Claude / OpenAI.
 
-Built by **[Irfan Sheriff Hasan](https://www.linkedin.com/in/irfan-sheriff-h-488562429/)**, **Dasthageer Basha J**, **Keerthi Vaasan M** and **Mohamed Thariq**
+Built by **[Irfan Sheriff Hasan](https://www.linkedin.com/in/irfan-sheriff-h-488562429/)**, **Bhavadharani B**, **Dasthageer Basha J**, **Keerthi Vaasan M** and **Mohamed Thariq**
 
 ![AI-CEO demo: type a prompt, watch the team build, get a working app](docs/images/demo.gif)
 
@@ -328,6 +328,7 @@ Docker was not available on the development machine, so this image has not been 
 | Name | Links |
 |---|---|
 | **Irfan Sheriff Hasan** | [LinkedIn](https://www.linkedin.com/in/irfan-sheriff-h-488562429/) · [GitHub](https://github.com/irfansheriffhasan-art) |
+| **Bhavadharani B** | |
 | **Dasthageer Basha J** | |
 | **Keerthi Vaasan M** | |
 | **Mohamed Thariq** | |
